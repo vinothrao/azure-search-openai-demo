@@ -6,13 +6,13 @@ variables:
   azureServiceConnectionId: 'Azure Subscription'
 
   # Web app name
-  webAppName: 'webapp1'
+  webAppName: 'healthcheckeus'
 
   # Agent VM image name
   vmImageName: 'ubuntu-latest'
 
   # Environment name
-  environmentName: 'webapp1'
+  environmentName: 'healthcheckeus'
 
   # Project root folder. Point to the folder containing manage.py file.
   projectRoot: $(System.DefaultWorkingDirectory)
