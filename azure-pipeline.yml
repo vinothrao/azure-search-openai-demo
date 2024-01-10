@@ -1,0 +1,128 @@
+trigger:
+- main
+
+variables:
+  # Azure Resource Manager connection created during pipeline creation
+  azureServiceConnectionId: ''
+
+  # Web app name
+  webAppName: 'webapp1'
+
+  # Agent VM image name
+  vmImageName: 'ubuntu-latest'
+
+  # Environment name
+  environmentName: 'webapp1'
+
+  # Project root folder. Point to the folder containing manage.py file.
+  projectRoot: $(System.DefaultWorkingDirectory)
+
+  # Python Version
+  pythonVersion: '3.10'
+  
+  # Source Folder
+  appFolderName: 'app'
+  
+  # Artefact Name
+  zipFileName: 'App.zip'
+
+
+stages:
+- stage: BuildWebsite
+  displayName: Build Website
+
+  jobs:
+  - job: BuildWebApp
+    displayName: Build Web App
+
+    pool:
+      vmImage: $(vmImageName)
+
+    variables:
+      - name: appDirectory
+        value: '$(System.DefaultWorkingDirectory)/$(appFolderName)'
+      - name: frontEndDirectory
+        value: '$(System.DefaultWorkingDirectory)/$(appFolderName)/frontend/'
+      - name: backendDirectory
+        value: '$(System.DefaultWorkingDirectory)/$(appFolderName)/backend/'
+
+    steps:
+    - task: CmdLine@2
+      inputs:
+        script: |
+          echo "appFolderName=$(appFolderName)"
+          echo "appDirectory=$(appDirectory)"
+          echo "frontEndDirectory=$(frontEndDirectory)"
+          echo "backendDirectory=$(backendDirectory)"
+          echo "Directory of System.DefaultWorkingDirectory:"
+          tree $(System.DefaultWorkingDirectory)
+      displayName: 'Display Variables'
+      continueOnError: true
+
+    - task: UsePythonVersion@0
+      displayName: 'Set Python Version'
+      inputs:
+        versionSpec: $(pythonVersion)
+
+    - bash: |
+        cd $(backendDirectory)
+        python -m venv antenv
+        source antenv/bin/activate
+        python -m pip install --upgrade pip
+        pip install setup
+        pip install -r requirements.txt
+      displayName: 'Install Dependencies'
+      continueOnError: true
+
+    - bash: |
+        cd $(frontEndDirectory)
+        npm install
+        npm run build
+      displayName: 'npm build frontend'
+
+    - task: CmdLine@2
+      inputs:
+        script: |
+          echo "Directory of System.DefaultWorkingDirectory:"
+          tree $(System.DefaultWorkingDirectory)
+      displayName: 'Display Files'
+      continueOnError: true
+
+    - task: ArchiveFiles@2
+      displayName: 'Build Artifact'
+      inputs:
+        rootFolderOrFile: '$(backendDirectory)'
+        includeRootFolder: false
+        archiveType: zip
+        archiveFile: $(Build.ArtifactStagingDirectory)/$(zipFileName)
+        replaceExistingArchive: true
+
+    - upload: $(Build.ArtifactStagingDirectory)/$(zipFileName)
+      displayName: 'Upload package'
+      artifact: drop
+    
+- stage: DeployWebsite
+  displayName: 'Deploy Web App'
+  dependsOn: BuildWebsite
+  condition: succeeded()
+  jobs:
+  - deployment: DeploymentJob
+    pool:
+      vmImage: $(vmImageName)
+
+    environment: $(environmentName)
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+          - task: UsePythonVersion@0
+            inputs:
+              versionSpec: '$(pythonVersion)'
+            displayName: 'Use Python version'
+          - task: AzureWebApp@1
+            displayName: 'Deploy Azure Web App : webapp1'
+            inputs:
+              appType: 'webAppLinux'
+              azureSubscription: $(azureServiceConnectionId)
+              appName: $(webAppName)
+              package: $(Pipeline.Workspace)/drop/$(zipFileName)
