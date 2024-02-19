@@ -20,7 +20,7 @@ pipeline {
             steps{
                 sh 'sudo apt install nodejs -y'
                 sh 'sudo apt install npm -y'
-                sh 'cd app/frontend;npm install -y;npm run build'
+                sh 'cd app/frontend;npm install;npm run build'
             }
         }
 
