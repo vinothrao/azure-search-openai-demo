@@ -18,6 +18,8 @@ pipeline {
 
         stage('install npm'){
             steps{
+                sh 'sudo apt install nodejs'
+                sh 'sudo apt install npm'
                 sh 'cd app/frontend;npm install -y;npm run build'
             }
         }
