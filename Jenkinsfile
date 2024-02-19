@@ -9,12 +9,12 @@ pipeline {
                 sh 'curl -fsSL https://aka.ms/install-azd.sh | bash'
             }
         }
-        stage('Install PIP'){
-            steps{
-                sh 'sudo apt-get install pip -y'
-                sh 'pip install -r requirements.txt'
-            }
-        }
+//         stage('Install PIP'){
+//             steps{
+//                 sh 'sudo apt-get install pip -y'
+//                 sh 'pip install -r requirements.txt'
+//             }
+//         }
 
         stage('Deploy azd') {
             steps {
